@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public enum TerrainType {
 	Grass,
@@ -9,9 +10,9 @@ public enum TerrainType {
 }
 
 public class Map {
-	public static float HutProbability = 0.1;
-	public static float WaterProbability = 0.2;
-	public static float FoodProbability = 0.2;
+	public static float HutProbability = 0.1f;
+	public static float WaterProbability = 0.2f;
+	public static float FoodProbability = 0.2f;
 
 	public int Width { get; set; }
 	public int Height { get; set; }
@@ -26,12 +27,12 @@ public class Map {
 		this.Game = game;
 	}
 
-	public Hex GetHex(int x, int y)
+	public Hex GetHex(int x, int z)
 	{
-
+		return Hexes.First(h => h.X == x && h.Z == z);
 	}
 
-	public void Build(int width, int height)
+	public void Build()
 	{
 		var rand = new Random();
 		var startHeightX = Random.Range(0, 1000);
@@ -49,8 +50,8 @@ public class Map {
 				Debug.Log(string.Format("{0}, {1}, {2}", heightCoordX, heightCoordZ, heightSample));
 				if (heightSample < Game.heightScale / 3) heightSample = 2;
 				Hex hex = new Hex() {
-					X = x,
-					Z = z,
+					X = (int)x,
+					Z = (int)z,
 					HasHut = Random.value < HutProbability
 				};
 				hex.HasWater = hex.HasHut || Random.value < WaterProbability;
@@ -98,19 +99,19 @@ public class TileFactory : MonoBehaviour {
 
 	static float r = 0.5f;
 	static float h = r * 2;
-	public static float vert = h * 0.86f;
-	static float mapHeight = 20;
-	static float mapWidth = 20;
+	public float vert = h * 0.86f;
+	static int mapHeight = 20;
+	static int mapWidth = 20;
 
 	// Use this for initialization
 	void Start () {
 		var map = new Map(mapHeight, mapWidth, this);
 		map.Build();
 		foreach(var hex in map.Hexes) {
-			var v2pos = map.GameToWorld(x, z);
+			var v2pos = map.GameToWorld(hex.X, hex.Z);
 			Transform t = (Transform)Instantiate(tile, new Vector3(v2pos.x, 0, v2pos.y), Quaternion.identity);
 			t.Rotate(90, 0, 0);
-			Material mat;
+			Material mat = null;
 			switch(hex.Terrain) {
 			case TerrainType.Grass:
 				mat = grassy;
