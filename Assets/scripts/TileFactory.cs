@@ -3,10 +3,35 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-public enum TerrainType {
-	Grass,
-	Mountains,
-	Forest
+public class Terrain
+{
+	public string Name { get; set; }
+	public Material Material { get; set; }
+	public int MovementCost { get; set; }
+}
+
+public class TerrainLibrary {
+	public Terrain Mountains;
+	public Terrain Grass;
+	public Terrain Forest;
+
+	public TerrainLibrary(TileFactory tf) {
+		Mountains = new Terrain() {
+			Material = tf.rocky,
+			Name = "Mountains",
+			MovementCost = 3
+		};
+		Grass = new Terrain() {
+			Material = tf.grassy,
+			Name = "Plains",
+			MovementCost = 1
+		};
+		Forest = new Terrain() {
+			Material = tf.forest,
+			Name = "Plains",
+			MovementCost = 2
+		};
+	}
 }
 
 public class Map {
@@ -17,6 +42,7 @@ public class Map {
 	public int Width { get; set; }
 	public int Height { get; set; }
 	public TileFactory Game { get; set; }
+	public TerrainLibrary Terrain { get; set; }
 
 	public List<Hex> Hexes = new List<Hex>();
 
@@ -25,6 +51,18 @@ public class Map {
 		this.Width = width;
 		this.Height = height;
 		this.Game = game;
+		this.Terrain = new TerrainLibrary(game);
+	}
+
+	public Hex GetHex(Vector3 worldPosition)
+	{
+		RaycastHit hit;
+		//worldPosition += Vector3.up;
+		if (Physics.Raycast(worldPosition, Vector3.down, out hit)) {
+			return Hexes.Find(h => h.Tile == hit.transform);
+		}
+		Debug.Log("no hex found");
+		return null;
 	}
 
 	public Hex GetHex(int x, int z)
@@ -48,7 +86,6 @@ public class Map {
 				float heightSample = Mathf.PerlinNoise(heightCoordX, heightCoordZ) * Game.heightScale;
 				float woodSample = Mathf.PerlinNoise(woodsCoordX, woodsCoordZ) * Game.heightScale;
 				Debug.Log(string.Format("{0}, {1}, {2}", heightCoordX, heightCoordZ, heightSample));
-				if (heightSample < Game.heightScale / 3) heightSample = 2;
 				Hex hex = new Hex() {
 					X = (int)x,
 					Z = (int)z,
@@ -56,12 +93,12 @@ public class Map {
 				};
 				hex.HasWater = hex.HasHut || Random.value < WaterProbability;
 				hex.HasFood = hex.HasHut || Random.value < FoodProbability;
-				if (heightSample >= 4) {
-					hex.Terrain = TerrainType.Mountains;
-				} else if (woodSample >= 3) {
-					hex.Terrain = TerrainType.Forest;
+				if (heightSample >= 3) {
+					hex.Terrain = Terrain.Mountains;
+				} else if (woodSample >= 2) {
+					hex.Terrain = Terrain.Forest;
 				} else {
-					hex.Terrain = TerrainType.Grass;
+					hex.Terrain = Terrain.Grass;
 				}
 				Hexes.Add(hex);
 			}
@@ -77,12 +114,20 @@ public class Map {
 public class Hex {
 	public int X { get; set; }
 	public int Z { get; set; }
-	public TerrainType Terrain { get; set; }
+	public Terrain Terrain { get; set; }
 	public bool HasHut { get; set; }
 	public bool HasWater { get; set; }
 	public bool HasFood { get; set; }
 	public bool HasTrail { get; set; }
 	public Transform Tile { get; set; }
+
+	public int MovementCost {
+		get {
+			if (HasTrail) return 1;
+			if (HasWater) return 2;
+			return Terrain.MovementCost;
+		}
+	}
 }
 
 public class TileFactory : MonoBehaviour {
@@ -96,6 +141,7 @@ public class TileFactory : MonoBehaviour {
 	public float tileHeight = 0.5f;
 	public float sampleScale = 0.213f;
 	public float heightScale = 5.0f;
+	public Map map;
 
 	static float r = 0.5f;
 	static float h = r * 2;
@@ -105,25 +151,13 @@ public class TileFactory : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-		var map = new Map(mapHeight, mapWidth, this);
+		map = new Map(mapHeight, mapWidth, this);
 		map.Build();
 		foreach(var hex in map.Hexes) {
 			var v2pos = map.GameToWorld(hex.X, hex.Z);
 			Transform t = (Transform)Instantiate(tile, new Vector3(v2pos.x, 0, v2pos.y), Quaternion.identity);
 			t.Rotate(90, 0, 0);
-			Material mat = null;
-			switch(hex.Terrain) {
-			case TerrainType.Grass:
-				mat = grassy;
-				break;
-			case TerrainType.Forest:
-				mat = forest;
-				break;
-			case TerrainType.Mountains:
-				mat = rocky;
-				break;
-			}
-			t.GetComponent<Renderer>().material = mat;
+			t.GetComponent<Renderer>().material = hex.Terrain.Material;
 			hex.Tile = t;
 		}
 	}

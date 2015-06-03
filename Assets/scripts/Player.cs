@@ -19,14 +19,19 @@ public class CardActions
 	public CardActions()
 	{
 		Cards.Add(new Card() {
-			Title = "Move 3/2/1",
-			Action = Move321,
-			Points = 3
+			Title = "Move 3",
+			Action = p => MoveFoward(p, 3),
+			Points = 1
 		});
 		Cards.Add(new Card() {
-			Title = "Move 6/4/2",
-			Action = Move642,
+			Title = "Move 2",
+			Action = p => MoveFoward(p, 2),
 			Points = 2
+		});
+		Cards.Add(new Card() {
+			Title = "Move 1",
+			Action = p => MoveFoward(p, 1),
+			Points = 3
 		});
 		Cards.Add(new Card() {
 			Title = "Back",
@@ -55,15 +60,17 @@ public class CardActions
 		});
 	}
 
-	void Move321(Player player)
+	void MoveFoward (Player player, int movementPoints)
 	{
-		// TODO : need to look at terrain type, assess cost, and adjust movement accordingly.
-		player.targetPosition += player.transform.forward;
-	}
-
-	void Move642(Player player)
-	{
-		player.targetPosition += (player.transform.forward * 2);
+		var map = player.map;
+		while (movementPoints > 0) {
+			var testPosition = player.targetPosition + player.transform.forward;
+			var hex = map.GetHex (testPosition);
+			if (hex == null || hex.MovementCost > movementPoints)
+				break;
+			movementPoints -= hex.MovementCost;
+			player.targetPosition += player.transform.forward;
+		}
 	}
 
 	void Back(Player player)
@@ -104,12 +111,15 @@ public class Player : MonoBehaviour {
 	public bool foundFood = true;
 	public bool foundWater = true;
 	public float direction = 0;
+	public int numDays = 0;
 	public List<Card> cards = new List<Card>();
 	// Values on water and food indexes represent life levels lost or gained.
 	public int[] waterIndex = new int[] {0, 0, 1, 1, 2, 3, 4, 7};
 	public int[] foodIndex = new int[]{0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 8, 10, 13};
 	// Values on life index represent movement points at that life level.
 	public int[] lifeIndex = new int[]{6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0, 0, 0};
+	public GameObject game;
+	public Map map;
 
 	CardActions cardDefs = new CardActions();
 
@@ -130,18 +140,25 @@ public class Player : MonoBehaviour {
 
 	void NewDay()
 	{
+		foundWater = false;
+		foundFood = false;
 		ShuffleCards();
+		numDays++;
 	}
 
 	void Start() {
 		ShuffleCards();
 		targetPosition = transform.position;
+		game = GameObject.FindGameObjectWithTag(Tags.GameController);
 	}
 
 	void OnGUI() {
-		string health = string.Format("Water: {0}, Food: {1}, Life: {2}, found food: {3}, found water: {4}",
-		                              waterLevel, foodLevel, lifeLevel, foundWater, foundFood);
-		GUI.Label(new Rect(20, 20, 400, 100), health.ToString());
+		if (map == null) {
+			map = game.GetComponent<TileFactory>().map;
+		}
+		string health = string.Format("Water: {0}, Food: {1}, Life: {2}, found food: {3}, found water: {4}, days: {5}",
+		                              waterLevel, foodLevel, lifeLevel, foundWater, foundFood, numDays);
+		GUI.Label(new Rect(20, 20, 500, 100), health.ToString());
 		for(int i = 0; i < cards.Count; i++) {
 			if (GUI.Button(new Rect(i * 220, Screen.height - 100, 200, 50), cards[i].Title)) {
 				Debug.Log(cards[i].Title);
