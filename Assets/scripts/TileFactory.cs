@@ -91,6 +91,7 @@ public class Map {
 					Z = (int)z,
 					HasHut = Random.value < HutProbability
 				};
+				hex.IsWinCondition = x == Width - 1;
 				hex.HasWater = hex.HasHut || Random.value < WaterProbability;
 				hex.HasFood = hex.HasHut || Random.value < FoodProbability;
 				if (heightSample >= 3) {
@@ -119,12 +120,13 @@ public class Hex {
 	public bool HasWater { get; set; }
 	public bool HasFood { get; set; }
 	public bool HasTrail { get; set; }
+	public bool IsWinCondition { get; set; }
 	public Transform Tile { get; set; }
 
 	public int MovementCost {
 		get {
 			if (HasTrail) return 1;
-			if (HasWater) return 2;
+			if (HasWater && !HasHut) return 2;
 			return Terrain.MovementCost;
 		}
 	}

@@ -74,6 +74,11 @@ public class CardActions
 			if (hex.HasFood) {
 				player.foundFood = true;
 			}
+			if (hex.IsWinCondition) {
+				player.gameOver = true;
+				player.lifeLevel = 0;
+			}
+			player.currentHex = hex;
 			movementPoints -= hex.MovementCost;
 			player.targetPosition += player.transform.forward;
 		}
@@ -87,12 +92,16 @@ public class CardActions
 			player.targetPosition += player.transform.forward;
 			return;
 		}
-			
+		player.currentHex = hex;
 		if (hex.HasWater) {
 			player.foundWater = true;
 		}
 		if (hex.HasFood) {
 			player.foundFood = true;
+		}
+		if (hex.IsWinCondition) {
+			player.gameOver = true;
+			player.lifeLevel = 0;
 		}
 	}
 
@@ -130,6 +139,7 @@ public class Player : MonoBehaviour {
 	public bool foundWater = true;
 	public float direction = 0;
 	public int numDays = 0;
+	public int numCardsPlayedToday = 0;
 	public List<Card> cards = new List<Card>();
 	// Values on water and food indexes represent life levels lost or gained.
 	public int[] waterIndex = new int[] {0, 0, 1, 1, 2, 3, 4, 7};
@@ -139,6 +149,7 @@ public class Player : MonoBehaviour {
 	public GameObject game;
 	public Map map;
 	public bool gameOver = false;
+	public Hex currentHex;
 
 	CardActions cardDefs = new CardActions();
 
@@ -166,6 +177,16 @@ public class Player : MonoBehaviour {
 
 	void NewDay()
 	{
+		if (currentHex != null && numCardsPlayedToday == 0) {
+			if (currentHex.HasFood) {
+				foodLevel = Math.Max(0, foodLevel - 3);
+				foundFood = true;
+			}
+			if (currentHex.HasWater) {
+				waterLevel = Math.Max(0, waterLevel - 1);
+				foundWater = true;
+			}
+		}
 		if (!foundWater) {
 			waterLevel++;
 		}
@@ -183,8 +204,23 @@ public class Player : MonoBehaviour {
 		}
 		foundWater = false;
 		foundFood = false;
+
 		ShuffleCards();
 		numDays++;
+		numCardsPlayedToday = 0;
+	}
+
+	void NewGame()
+	{
+		Start();
+		targetPosition = new Vector3(0, 0.3f, 0);
+		lifeLevel = 0;
+		waterLevel = 0;
+		foodLevel = 0;
+		foundFood = true;
+		foundWater = true;
+		gameOver = false;
+		numDays = 0;
 	}
 
 	void Start() {
@@ -207,17 +243,26 @@ public class Player : MonoBehaviour {
 		                              waterLevel, foodLevel, lifeLevel, foundFood, foundWater, numDays);
 		GUI.Label(new Rect(20, 20, 500, 100), health.ToString());
 		if (gameOver) {
-			GUI.Label(new Rect(100, 100, 500, 100), "YOU DIED");
+			GUI.Label(new Rect(Screen.width / 2 - 200, Screen.height / 2 - 50, 500, 100), lifeLevel > 0 ? "YOU DIED :(" : "YOU MADE IT!");
+			if (GUI.Button(new Rect(Screen.width / 2 - 50, Screen.height / 2 + 100, 100, 50), "Play Again")) {
+				NewGame();
+			}
 			return;
 		}
 
 		for(int i = 0; i < cards.Count; i++) {
-			if (GUI.Button(new Rect(i * 220, Screen.height - 100, 200, 50), cards[i].Title)) {
+			if (GUI.Button(new Rect(i * 220 + 10, Screen.height - 100, 200, 50), cards[i].Title)) {
 				Debug.Log(cards[i].Title);
 				cards[i].Action(this);
 				cards.RemoveAt(i);
+				numCardsPlayedToday++;
 			}
 		}
+
+		if (GUI.Button (new Rect(10, Screen.height - 200, 200, 50), "Camp")) {
+			cards.Clear();
+		}
+
 		if (cards.Count == 0) {
 			NewDay();
 		}
