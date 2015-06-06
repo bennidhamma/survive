@@ -35,9 +35,9 @@ public class TerrainLibrary {
 }
 
 public class Map {
-	public static float HutProbability = 0.1f;
+	public static float HutProbability = 0.01f;
 	public static float WaterProbability = 0.2f;
-	public static float FoodProbability = 0.2f;
+	public static float FoodProbability = 0.1f;
 
 	public int Width { get; set; }
 	public int Height { get; set; }
@@ -57,8 +57,8 @@ public class Map {
 	public Hex GetHex(Vector3 worldPosition)
 	{
 		RaycastHit hit;
-		//worldPosition += Vector3.up;
-		if (Physics.Raycast(worldPosition, Vector3.down, out hit)) {
+		worldPosition -= 5 * Vector3.up;
+		if (Physics.Raycast(worldPosition, Vector3.up, out hit)) {
 			return Hexes.Find(h => h.Tile == hit.transform);
 		}
 		Debug.Log("no hex found");
@@ -134,6 +134,9 @@ public class TileFactory : MonoBehaviour {
 	public Material grassy;
 	public Material rocky;
 	public Material forest;
+	public Transform food;
+	public Transform water;
+	public Transform hut;
 	public Transform tile;
 
 	public float offsetX = 0.5f;
@@ -155,10 +158,21 @@ public class TileFactory : MonoBehaviour {
 		map.Build();
 		foreach(var hex in map.Hexes) {
 			var v2pos = map.GameToWorld(hex.X, hex.Z);
-			Transform t = (Transform)Instantiate(tile, new Vector3(v2pos.x, 0, v2pos.y), Quaternion.identity);
+			var hexPos = new Vector3(v2pos.x, 0, v2pos.y);
+			Transform t = (Transform)Instantiate(tile, hexPos, Quaternion.identity);
 			t.Rotate(90, 0, 0);
 			t.GetComponent<Renderer>().material = hex.Terrain.Material;
 			hex.Tile = t;
+			if (hex.HasHut) {
+				Instantiate(hut, hexPos, Quaternion.identity);
+			} else {
+				if (hex.HasFood) {
+					Instantiate(food, hexPos, Quaternion.identity);
+				}
+				if (hex.HasWater) {
+					Instantiate(water, hexPos, Quaternion.identity);
+				}
+			}
 		}
 	}
 }
