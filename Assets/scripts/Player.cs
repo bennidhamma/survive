@@ -1,8 +1,9 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
 using System.Linq;
+using UnityEditor;
 
 public class Card
 {
@@ -10,6 +11,7 @@ public class Card
 	public string Title { get; set; }
 	// A number used to determine probablity of card selection. Higher is better.
 	public int Points { get; set; }
+	public Texture2D Icon { get; set; }
 }
 
 public class CardActions
@@ -18,45 +20,54 @@ public class CardActions
 
 	public CardActions()
 	{
+		//AssetDatabase.LoadAssetAtPath("")
 		Cards.Add(new Card() {
 			Title = "Move 3",
 			Action = p => MoveFoward(p, 3),
-			Points = 1
+			Points = 1,
+			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/mov3.png", typeof(Texture2D))
 		});
 		Cards.Add(new Card() {
 			Title = "Move 2",
 			Action = p => MoveFoward(p, 2),
-			Points = 2
+			Points = 2,
+			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/mov2.png", typeof(Texture2D))
 		});
 		Cards.Add(new Card() {
 			Title = "Move 1",
 			Action = p => MoveFoward(p, 1),
-			Points = 3
+			Points = 3,
+			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/mov1.png", typeof(Texture2D))
 		});
 		Cards.Add(new Card() {
 			Title = "Back",
 			Action = Back,
-			Points = 2
+			Points = 2,
+			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/back.png", typeof(Texture2D))
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CW",
 			Action = RotCW,
-			Points = 2
+			Points = 2,
+			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/rotcw.png", typeof(Texture2D))
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CW2",
 			Action = RotCW2,
-			Points = 1
+			Points = 1,
+			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/rotcw2.png", typeof(Texture2D))
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CCW",
 			Action = RotCCW,
-			Points = 2
+			Points = 2,
+			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/rotccw.png", typeof(Texture2D))
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CCW2",
 			Action = RotCCW2,
-			Points = 1
+			Points = 1,
+			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/rotccw2.png", typeof(Texture2D))
 		});
 	}
 
@@ -87,7 +98,7 @@ public class CardActions
 	void Back(Player player)
 	{
 		player.targetPosition -= player.transform.forward;
-		var hex = player.map.GetHex (player.targetPosition);
+		var hex = player.Map.GetHex (player.targetPosition);
 		if (hex == null) {
 			player.targetPosition += player.transform.forward;
 			return;
@@ -147,11 +158,19 @@ public class Player : MonoBehaviour {
 	// Values on life index represent movement points at that life level.
 	public int[] lifeIndex = new int[]{6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0, 0, 0};
 	public GameObject game;
-	public Map map;
+	private Map map;
 	public bool gameOver = false;
 	public Hex currentHex;
+	public GUISkin skin;
+	public GUIStyle goodStyle, badStyle;
+	public Texture2D campIcon;
 
-	CardActions cardDefs = new CardActions();
+	CardActions cardDefs;
+
+	void Awake() {
+		cardDefs = new CardActions();
+		campIcon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/camp.png", typeof(Texture2D));
+	}
 
 	void ShuffleCards() {
 		var r = new UnityEngine.Random();
@@ -239,9 +258,10 @@ public class Player : MonoBehaviour {
 	}
 
 	void OnGUI() {
-		string health = string.Format("Water: {0}, Food: {1}, Life: {2}, found food: {3}, found water: {4}, days: {5}",
-		                              waterLevel, foodLevel, lifeLevel, foundFood, foundWater, numDays);
-		GUI.Label(new Rect(20, 20, 500, 100), health.ToString());
+		GUI.skin = skin;
+		string health = string.Format("Water: {0}, Food: {1}, Life: {2}, Movement: {6} found food: {3}, found water: {4}, days: {5}",
+		                              waterLevel, foodLevel, lifeLevel, foundFood, foundWater, numDays, lifeIndex[lifeLevel]);
+		GUI.Label(new Rect(20, 20, 1000, 300), health.ToString());
 		if (gameOver) {
 			GUI.Label(new Rect(Screen.width / 2 - 200, Screen.height / 2 - 50, 500, 100), lifeLevel > 0 ? "YOU DIED :(" : "YOU MADE IT!");
 			if (GUI.Button(new Rect(Screen.width / 2 - 50, Screen.height / 2 + 100, 100, 50), "Play Again")) {
@@ -251,7 +271,7 @@ public class Player : MonoBehaviour {
 		}
 
 		for(int i = 0; i < cards.Count; i++) {
-			if (GUI.Button(new Rect(i * 220 + 10, Screen.height - 100, 200, 50), cards[i].Title)) {
+			if (GUI.Button(new Rect(i * 220 + 10, Screen.height - 210, 200, 200), cards[i].Icon)) {
 				Debug.Log(cards[i].Title);
 				cards[i].Action(this);
 				cards.RemoveAt(i);
@@ -259,7 +279,7 @@ public class Player : MonoBehaviour {
 			}
 		}
 
-		if (GUI.Button (new Rect(10, Screen.height - 200, 200, 50), "Camp")) {
+		if (GUI.Button (new Rect(10, Screen.height - 350, 300, 114), campIcon)) {
 			cards.Clear();
 		}
 
