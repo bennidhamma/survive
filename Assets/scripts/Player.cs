@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using System.Linq;
-using UnityEditor;
 
 public class Card
 {
@@ -25,49 +24,49 @@ public class CardActions
 			Title = "Move 3",
 			Action = p => MoveFoward(p, 3),
 			Points = 1,
-			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/mov3.png", typeof(Texture2D))
+			Icon = Resources.Load<Texture2D>("mov3")
 		});
 		Cards.Add(new Card() {
 			Title = "Move 2",
 			Action = p => MoveFoward(p, 2),
 			Points = 2,
-			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/mov2.png", typeof(Texture2D))
+			Icon = Resources.Load<Texture2D>("mov2")
 		});
 		Cards.Add(new Card() {
 			Title = "Move 1",
 			Action = p => MoveFoward(p, 1),
 			Points = 3,
-			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/mov1.png", typeof(Texture2D))
+			Icon = Resources.Load<Texture2D>("mov1")
 		});
 		Cards.Add(new Card() {
 			Title = "Back",
 			Action = Back,
 			Points = 2,
-			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/back.png", typeof(Texture2D))
+			Icon = Resources.Load<Texture2D>("back")
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CW",
 			Action = RotCW,
 			Points = 2,
-			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/rotcw.png", typeof(Texture2D))
+			Icon = Resources.Load<Texture2D>("rotcw")
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CW2",
 			Action = RotCW2,
 			Points = 1,
-			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/rotcw2.png", typeof(Texture2D))
+			Icon = Resources.Load<Texture2D>("rotcw2")
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CCW",
 			Action = RotCCW,
 			Points = 2,
-			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/rotccw.png", typeof(Texture2D))
+			Icon = Resources.Load<Texture2D>("rotccw")
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CCW2",
 			Action = RotCCW2,
 			Points = 1,
-			Icon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/rotccw2.png", typeof(Texture2D))
+			Icon = Resources.Load<Texture2D>("rotccw2")
 		});
 	}
 
@@ -164,12 +163,22 @@ public class Player : MonoBehaviour {
 	public GUISkin skin;
 	public GUIStyle goodStyle, badStyle;
 	public Texture2D campIcon;
+	public Texture2D waterIcon;
+	public Texture2D foodIcon;
 
 	CardActions cardDefs;
 
 	void Awake() {
 		cardDefs = new CardActions();
-		campIcon = (Texture2D) AssetDatabase.LoadAssetAtPath("Assets/GUI/icons/camp.png", typeof(Texture2D));
+		campIcon = Resources.Load<Texture2D>("camp");
+		waterIcon = Resources.Load<Texture2D>("water");
+		foodIcon = Resources.Load<Texture2D>("food");
+		goodStyle = new GUIStyle();
+		goodStyle.normal.textColor = Color.green;
+		goodStyle.fontSize = 50;
+		badStyle = new GUIStyle();
+		badStyle.normal.textColor = Color.red;
+		badStyle.fontSize = 50;
 	}
 
 	void ShuffleCards() {
@@ -259,12 +268,13 @@ public class Player : MonoBehaviour {
 
 	void OnGUI() {
 		GUI.skin = skin;
-		string health = string.Format("Water: {0}, Food: {1}, Life: {2}, Movement: {6} found food: {3}, found water: {4}, days: {5}",
-		                              waterLevel, foodLevel, lifeLevel, foundFood, foundWater, numDays, lifeIndex[lifeLevel]);
-		GUI.Label(new Rect(20, 20, 1000, 300), health.ToString());
+		GUI.Box(new Rect(10, 10, 80, 76), new GUIContent(waterLevel.ToString(), waterIcon), foundWater ? goodStyle : badStyle);
+		GUI.Box(new Rect(150, 10, 80, 76), new GUIContent(foodLevel.ToString(), foodIcon), foundFood ? goodStyle : badStyle);
+		string health = string.Format("Life: {0}   Move: {1}   Days: {2}", lifeLevel, lifeIndex[lifeLevel], numDays);
+		GUI.Label(new Rect(300, 10, 1000, 300), health.ToString());
 		if (gameOver) {
 			GUI.Label(new Rect(Screen.width / 2 - 200, Screen.height / 2 - 50, 500, 100), lifeLevel > 0 ? "YOU DIED :(" : "YOU MADE IT!");
-			if (GUI.Button(new Rect(Screen.width / 2 - 50, Screen.height / 2 + 100, 100, 50), "Play Again")) {
+			if (GUI.Button(new Rect(Screen.width / 2 - 200, Screen.height / 2 + 100, 500, 100), "Play Again")) {
 				NewGame();
 			}
 			return;
