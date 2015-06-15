@@ -28,7 +28,7 @@ public class TerrainLibrary {
 		};
 		Forest = new Terrain() {
 			Material = tf.forest,
-			Name = "Plains",
+			Name = "Forest",
 			MovementCost = 2
 		};
 	}
@@ -140,6 +140,7 @@ public class TileFactory : MonoBehaviour {
 	public Transform water;
 	public Transform hut;
 	public Transform tile;
+	public Transform tree;
 
 	public float offsetX = 0.5f;
 	public float offsetY = 1f;
@@ -154,8 +155,48 @@ public class TileFactory : MonoBehaviour {
 	static int mapHeight = 20;
 	static int mapWidth = 20;
 
+	static Dictionary<int, List<Vector3>> treePositions = new Dictionary<int, List<Vector3>>();
+
+	void SetupTreePositions()
+	{
+		var height = 0.5f;
+		// 1 Tree
+		treePositions[1] = new List<Vector3>() {
+			new Vector3(0, height, 0)
+		};
+		// 2 trees
+		treePositions[2] = new List<Vector3>() {
+			new Vector3(-1f/3f, height, -1f/3f),
+			new Vector3(1f/3f, height, 1f/3f)
+		};
+		// 3 trees
+		treePositions[3] = new List<Vector3>() {
+			new Vector3(-1f/3f, height, 0),
+			new Vector3(1f/3f, height, -1f/3f),
+			new Vector3(1f/3f, height, 1f/3f)
+		};
+		// 4 trees
+		treePositions[4] = new List<Vector3>() {
+			new Vector3(-1f/3f, height, -1f/3f),
+			new Vector3(-1f/3f, height, 1f/3f),
+			new Vector3(1f/3f, height, -1f/3f),
+			new Vector3(1f/3f, height, 1f/3f)
+		};
+	}
+
+	void SetupTreesForHex (Hex hex)
+	{
+		var numTrees = (int)Random.Range (1, 4);
+		var treePos = treePositions [numTrees];
+		for (int i = 0; i < numTrees; i++) {
+			var pos = hex.Tile.transform.position + treePos[i];
+			Instantiate(tree, pos, Quaternion.identity);
+		}
+	}
+
 	// Use this for initialization
 	void Start () {
+		SetupTreePositions();
 		map = new Map(mapHeight, mapWidth, this);
 		map.Build();
 		foreach(var hex in map.Hexes) {
@@ -165,6 +206,9 @@ public class TileFactory : MonoBehaviour {
 			t.Rotate(90, 0, 0);
 			t.GetComponent<Renderer>().material = hex.Terrain.Material;
 			hex.Tile = t;
+			if (hex.Terrain == map.Terrain.Forest) {
+				SetupTreesForHex (hex);
+			}
 			if (hex.HasHut) {
 				Instantiate(hut, hexPos, Quaternion.identity);
 			} else {
