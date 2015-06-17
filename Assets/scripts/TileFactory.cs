@@ -141,6 +141,7 @@ public class TileFactory : MonoBehaviour {
 	public Transform hut;
 	public Transform tile;
 	public Transform tree;
+	public Transform mountain;
 
 	public float offsetX = 0.5f;
 	public float offsetY = 1f;
@@ -208,6 +209,8 @@ public class TileFactory : MonoBehaviour {
 			hex.Tile = t;
 			if (hex.Terrain == map.Terrain.Forest) {
 				SetupTreesForHex (hex);
+			} else if (hex.Terrain == map.Terrain.Mountains) {
+				Instantiate(mountain, hex.Tile.position + new Vector3(-0.5f, 0.1f, -0.5f), Quaternion.identity);
 			}
 			if (hex.HasHut) {
 				Instantiate(hut, hexPos, Quaternion.identity);
