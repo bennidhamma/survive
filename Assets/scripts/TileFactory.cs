@@ -143,6 +143,9 @@ public class TileFactory : MonoBehaviour {
 	public Transform tree;
 	public Transform mountain;
 
+	public float moveRiverX = 0;
+	public float moveRiverZ = 0.5f;
+
 	public float offsetX = 0.5f;
 	public float offsetY = 1f;
 	public float tileHeight = 0.5f;
@@ -219,7 +222,9 @@ public class TileFactory : MonoBehaviour {
 					Instantiate(food, hexPos, Quaternion.identity);
 				}
 				if (hex.HasWater) {
-					Instantiate(water, hexPos, Quaternion.identity);
+					Transform waterInstance = (Transform)Instantiate(water, hexPos, Quaternion.identity);
+					waterInstance.Rotate(Vector3.up, 60 * Random.Range (0, 6));
+					waterInstance.Translate(new Vector3(moveRiverX, 0, moveRiverZ));
 				}
 			}
 		}
