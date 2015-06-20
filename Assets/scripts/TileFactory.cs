@@ -36,7 +36,7 @@ public class TerrainLibrary {
 
 public class Map {
 	public static float HutProbability = 0.01f;
-	public static float WaterProbability = 0.2f;
+	public static float WaterProbability = 0.06f;
 	public static float FoodProbability = 0.1f;
 
 	public int Width { get; set; }
@@ -72,7 +72,6 @@ public class Map {
 
 	public void Build()
 	{
-		var rand = new Random();
 		var startHeightX = Random.Range(0, 1000);
 		var startHeightZ = Random.Range(0, 1000);
 		var startWoodsX = Random.Range (0, 1000);
@@ -138,6 +137,7 @@ public class TileFactory : MonoBehaviour {
 	public Material forest;
 	public Transform food;
 	public Transform water;
+	public Transform water2;
 	public Transform hut;
 	public Transform tile;
 	public Transform tree;
@@ -222,9 +222,25 @@ public class TileFactory : MonoBehaviour {
 					Instantiate(food, hexPos, Quaternion.identity);
 				}
 				if (hex.HasWater) {
-					Transform waterInstance = (Transform)Instantiate(water, hexPos, Quaternion.identity);
-					waterInstance.Rotate(Vector3.up, 60 * Random.Range (0, 6));
-					waterInstance.Translate(new Vector3(moveRiverX, 0, moveRiverZ));
+					Transform parentWater = null;
+					Transform currentWater = (Transform)Instantiate(water, hexPos, Quaternion.identity);
+					currentWater.Rotate(Vector3.up, 60 * Random.Range (0, 6));
+					currentWater.Translate(new Vector3(moveRiverX, 0, moveRiverZ));
+					float rot = Random.value < 0.5 ? 60f : -60f;
+					parentWater = currentWater;
+					for (int i = 0; i < Random.Range(2, 8); i++) {
+						currentWater = (Transform)Instantiate(water, Vector3.zero, Quaternion.identity);
+						currentWater.SetParent(parentWater, false);
+						currentWater.Translate(new Vector3(0, 0, 0.6f));
+						var center = Vector3.Lerp(parentWater.transform.position, currentWater.transform.position, 0.5f);
+						currentWater.RotateAround(center, Vector3.up, rot);
+						if (map.GetHex(currentWater.transform.position) == null) {
+							Object.Destroy(currentWater);
+							break;
+						}
+						rot = Random.value < 0.3 ? rot : -rot;
+						parentWater = currentWater;
+					}
 				}
 			}
 		}
