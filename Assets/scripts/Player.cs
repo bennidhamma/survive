@@ -201,6 +201,12 @@ public class Player : MonoBehaviour {
 
 	void GameOver()
 	{
+		waterLevel = 0;
+		lifeLevel = 0;
+		foodLevel = 0;
+		ShuffleCards();
+		return;
+
 		gameOver = true;
 		Debug.Log("GAME OVER");
 		this.transform.rotation.Set(90, 0, 0, 0);
