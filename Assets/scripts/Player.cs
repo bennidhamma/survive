@@ -76,7 +76,10 @@ public class CardActions
 		while (movementPoints > 0) {
 			var testPosition = player.targetPosition + player.transform.forward;
 			var hex = map.GetHex (testPosition);
-			if (hex == null || hex.MovementCost > movementPoints)
+			if (hex == null)
+				break;
+			var moveCost = hex.GetMovementCost(player.currentHex);
+			if (moveCost > movementPoints)
 				break;
 			if (hex.HasWater) {
 				player.foundWater = true;
@@ -89,7 +92,7 @@ public class CardActions
 				player.lifeLevel = 0;
 			}
 			player.currentHex = hex;
-			movementPoints -= hex.MovementCost;
+			movementPoints -= moveCost;
 			player.targetPosition += player.transform.forward;
 		}
 	}

@@ -72,6 +72,7 @@ public class Map {
 
 	public void Build()
 	{
+		Random.seed = 1;
 		var startHeightX = Random.Range(0, 1000);
 		var startHeightZ = Random.Range(0, 1000);
 		var startWoodsX = Random.Range (0, 1000);
@@ -121,13 +122,16 @@ public class Hex {
 	public bool HasTrail { get; set; }
 	public bool IsWinCondition { get; set; }
 	public Transform Tile { get; set; }
+	public List<Hex> RiverHexes { get; set; }
 
-	public int MovementCost {
-		get {
-			if (HasTrail) return 1;
-			if (HasWater && !HasHut) return 2;
-			return Terrain.MovementCost;
-		}
+	public Hex() {
+		RiverHexes = new List<Hex>();
+	}
+
+	public int GetMovementCost (Hex fromHex) {
+		if (HasTrail) return 1;
+		if (this.RiverHexes.Contains(fromHex)) return 2;
+		return Terrain.MovementCost;
 	}
 }
 
@@ -142,6 +146,7 @@ public class TileFactory : MonoBehaviour {
 	public Transform tile;
 	public Transform tree;
 	public Transform mountain;
+	public Transform debugBall;
 
 	public float moveRiverX = 0;
 	public float moveRiverZ = 0.5f;
@@ -203,6 +208,8 @@ public class TileFactory : MonoBehaviour {
 		SetupTreePositions();
 		map = new Map(mapHeight, mapWidth, this);
 		map.Build();
+
+		// first pass. hexes, trees, mountains.s
 		foreach(var hex in map.Hexes) {
 			var v2pos = map.GameToWorld(hex.X, hex.Z);
 			var hexPos = new Vector3(v2pos.x, 0, v2pos.y);
@@ -211,38 +218,97 @@ public class TileFactory : MonoBehaviour {
 			t.GetComponent<Renderer>().material = hex.Terrain.Material;
 			hex.Tile = t;
 			if (hex.Terrain == map.Terrain.Forest) {
-				SetupTreesForHex (hex);
+			//	SetupTreesForHex (hex);
 			} else if (hex.Terrain == map.Terrain.Mountains) {
-				Instantiate(mountain, hex.Tile.position + new Vector3(-0.5f, 0.1f, -0.5f), Quaternion.identity);
+			//	Instantiate(mountain, hex.Tile.position + new Vector3(-0.5f, 0.1f, -0.5f), Quaternion.identity);
 			}
 			if (hex.HasHut) {
-				Instantiate(hut, hexPos, Quaternion.identity);
-			} else {
-				if (hex.HasFood) {
-					Instantiate(food, hexPos, Quaternion.identity);
-				}
-				if (hex.HasWater) {
-					Transform parentWater = null;
-					Transform currentWater = (Transform)Instantiate(water, hexPos, Quaternion.identity);
-					currentWater.Rotate(Vector3.up, 60 * Random.Range (0, 6));
-					currentWater.Translate(new Vector3(moveRiverX, 0, moveRiverZ));
-					float rot = Random.value < 0.5 ? 60f : -60f;
-					parentWater = currentWater;
-					for (int i = 0; i < Random.Range(2, 8); i++) {
-						currentWater = (Transform)Instantiate(water, Vector3.zero, Quaternion.identity);
-						currentWater.SetParent(parentWater, false);
-						currentWater.Translate(new Vector3(0, 0, 0.6f));
-						var center = Vector3.Lerp(parentWater.transform.position, currentWater.transform.position, 0.5f);
-						currentWater.RotateAround(center, Vector3.up, rot);
-						if (map.GetHex(currentWater.transform.position) == null) {
-							Object.Destroy(currentWater);
-							break;
-						}
-						rot = Random.value < 0.3 ? rot : -rot;
-						parentWater = currentWater;
-					}
-				}
+			//	Instantiate(hut, hexPos, Quaternion.identity);
+			} else if (hex.HasFood) {
+			//	Instantiate(food, hexPos, Quaternion.identity);
+			}
+		}
+
+		// water
+		List<Hex> hexesToAddWaterTo = new List<Hex>();
+		foreach(var hex in map.Hexes) {
+			var v2pos = map.GameToWorld(hex.X, hex.Z);
+			var hexPos = new Vector3(v2pos.x, 0, v2pos.y);
+			if (hex.HasWater) {
+				SetupWater (hex, hexPos, hexesToAddWaterTo);
 			}
 		}
 	}
+
+	void SetupWater (Hex hex, Vector3 hexPos, List<Hex> hexesToAddWaterTo)
+	{
+		Transform parentWater = null;
+		// The first river segment is globally positioned off the center of the current hex.
+		Transform currentWater = (Transform)Instantiate (water, Vector3.zero, Quaternion.identity);
+		currentWater.SetParent(hex.Tile, false);
+		currentWater.transform.Rotate(new Vector3(-270, -180, 0));
+		currentWater.Rotate (Vector3.up, 60 * Random.Range (0, 6));
+		currentWater.Translate (new Vector3 (moveRiverX, 0, moveRiverZ));
+		float rot = Random.value < 0.5 ? 60f : -60f;
+		parentWater = currentWater;
+		UpdateWaterStateForRiverSegmentNeighbors(currentWater, hexesToAddWaterTo);
+		hex.Tile.GetComponent<Renderer>().material.color = Color.blue;
+		// The remaining segments are positioned locally as children of the preceding segments.
+		for (int i = 0; i < Random.Range (2, 2); i++) {
+			currentWater = (Transform)Instantiate (water, Vector3.zero, Quaternion.identity);
+			currentWater.SetParent (parentWater, false);
+			currentWater.Translate (new Vector3 (0, 0.2f, 0.6f));
+			var center = Vector3.Lerp (parentWater.transform.position, currentWater.transform.position, 0.5f);
+			currentWater.RotateAround (center, Vector3.up, rot);
+			if (map.GetHex (currentWater.transform.position) == null) {
+				Object.Destroy (currentWater);
+				break;
+			}
+			rot = Random.value < 0.3 ? rot : -rot;
+			parentWater = currentWater;
+			UpdateWaterStateForRiverSegmentNeighbors(currentWater, hexesToAddWaterTo);
+		}
+	}
+
+	HashSet<Hex> nudgedHexes = new HashSet<Hex>();
+	void UpdateWaterStateForRiverSegmentNeighbors(Transform riverSegment, List<Hex> hexesToAddWaterTo)
+	{
+		var worldLeft = riverSegment.TransformPoint(Vector3.right * 0.4f);
+		var dbgball = (Transform)Instantiate(debugBall, worldLeft, Quaternion.identity);
+		dbgball.Translate(Vector3.up * 0.2f);
+		var worldRight = riverSegment.TransformPoint(Vector3.left * 0.4f);
+		dbgball = (Transform)Instantiate(debugBall, worldRight, Quaternion.identity);
+		dbgball.Translate(Vector3.up * 0.2f);
+		dbgball.GetComponent<Renderer>().material.color = Color.yellow;
+
+		dbgball = (Transform)Instantiate(debugBall, riverSegment.transform.position, Quaternion.identity);
+		dbgball.Translate(Vector3.up * 0.2f);
+		dbgball.GetComponent<Renderer>().material.color = Color.black;
+		var hexLeft = map.GetHex(worldLeft);
+		var nudge = new Vector3(0, 0, 0.1f);
+		if (hexLeft != null) {
+			hexesToAddWaterTo.Add(hexLeft);
+			if (!nudgedHexes.Contains(hexLeft)) {
+				hexLeft.Tile.Translate(nudge);
+				nudgedHexes.Add(hexLeft);
+
+			}
+			hexLeft.Tile.GetComponent<Renderer>().material.color = Color.gray;
+		}
+		var hexRight = map.GetHex(worldRight);
+		if (hexRight != null) {
+			hexesToAddWaterTo.Add(hexRight);
+			if (!nudgedHexes.Contains(hexRight)) {
+				hexRight.Tile.Translate(nudge);
+				nudgedHexes.Add(hexRight);
+
+			}
+			hexRight.Tile.GetComponent<Renderer>().material.color = Color.red;
+		}
+		if (hexRight != null && hexLeft != null) {
+			hexRight.RiverHexes.Add(hexLeft);
+			hexLeft.RiverHexes.Add(hexRight);
+		}
+	}
 }
+
