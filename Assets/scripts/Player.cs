@@ -81,17 +81,8 @@ public class CardActions
 			var moveCost = hex.GetMovementCost(player.currentHex);
 			if (moveCost > movementPoints)
 				break;
-			if (hex.HasWater) {
-				player.foundWater = true;
-			}
-			if (hex.HasFood) {
-				player.foundFood = true;
-			}
-			if (hex.IsWinCondition) {
-				player.gameOver = true;
-				player.lifeLevel = 0;
-			}
 			player.currentHex = hex;
+			HandleHex (player, hex);
 			movementPoints -= moveCost;
 			player.targetPosition += player.transform.forward;
 		}
@@ -105,12 +96,23 @@ public class CardActions
 			player.targetPosition += player.transform.forward;
 			return;
 		}
+		HandleHex (player, hex);
+	}
+
+	void HandleHex(Player player, Hex hex)
+	{
 		player.currentHex = hex;
-		if (hex.HasWater) {
+		if (player.FindWater()) {
 			player.foundWater = true;
 		}
-		if (hex.HasFood) {
+		if (player.FindFood()) {
 			player.foundFood = true;
+		}
+		if (hex.Item != null) {
+			Debug.Log("You found a " + hex.Item);
+			player.items.Add(hex.Item);
+			hex.Item = null;
+			UnityEngine.Object.Destroy(hex.ItemTransform.gameObject);
 		}
 		if (hex.IsWinCondition) {
 			player.gameOver = true;
@@ -168,6 +170,7 @@ public class Player : MonoBehaviour {
 	public Texture2D campIcon;
 	public Texture2D waterIcon;
 	public Texture2D foodIcon;
+	public HashSet<string> items = new HashSet<string>();
 
 	CardActions cardDefs;
 
@@ -205,8 +208,6 @@ public class Player : MonoBehaviour {
 		lifeLevel = 0;
 		foodLevel = 0;
 		ShuffleCards();
-		return;
-
 		gameOver = true;
 		Debug.Log("GAME OVER");
 		this.transform.rotation.Set(90, 0, 0, 0);
@@ -215,11 +216,12 @@ public class Player : MonoBehaviour {
 	void NewDay()
 	{
 		if (currentHex != null && numCardsPlayedToday == 0) {
-			if (currentHex.HasFood) {
+			// player has not played any cards this turn so has camped. if there's food or water nearby, give them some.
+			if (FindFood()) {
 				foodLevel = Math.Max(0, foodLevel - 3);
 				foundFood = true;
 			}
-			if (currentHex.HasWater) {
+			if (FindWater()) {
 				waterLevel = Math.Max(0, waterLevel - 1);
 				foundWater = true;
 			}
@@ -264,6 +266,30 @@ public class Player : MonoBehaviour {
 		ShuffleCards();
 		targetPosition = transform.position;
 		game = GameObject.FindGameObjectWithTag(Tags.GameController);
+	}
+
+	public bool FindFood()
+	{
+		if (currentHex.HasFood) {
+			return true;
+		}
+		else if (items.Contains("rifle")) {
+			var mask = LayerMask.GetMask("Food");
+			var collisions = Physics.OverlapSphere(currentHex.Tile.position, 1.5f, mask);
+			if (collisions.Any()) {
+				Debug.Log("rifle got some food");
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public bool FindWater()
+	{
+		if (currentHex.HasWater) {
+			return true;
+		}
+		return false;
 	}
 
 	public Map Map {

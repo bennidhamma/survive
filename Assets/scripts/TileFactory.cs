@@ -110,6 +110,12 @@ public class Map {
 	{
 		return new Vector2(z % 2 == 0 ? x : x + Game.offsetX, z * Game.vert);
 	}
+
+	public Vector3 GameToWorld3(float x, float z)
+	{
+		var vec2 = GameToWorld(x, z);
+		return new Vector3(vec2.x, 0, vec2.y);
+	}
 }
 
 public class Hex {
@@ -123,6 +129,8 @@ public class Hex {
 	public bool IsWinCondition { get; set; }
 	public Transform Tile { get; set; }
 	public List<Hex> RiverHexes { get; set; }
+	public string Item { get; set; }
+	public Transform ItemTransform { get; set; }
 
 	public Hex() {
 		RiverHexes = new List<Hex>();
@@ -146,6 +154,8 @@ public class TileFactory : MonoBehaviour {
 	public Transform tile;
 	public Transform tree;
 	public Transform mountain;
+	public Transform rifle;
+	public Transform waterBottle;
 	public Transform debugBall;
 
 	public float moveRiverX = 0;
@@ -165,6 +175,13 @@ public class TileFactory : MonoBehaviour {
 	static int mapWidth = 20;
 
 	static Dictionary<int, List<Vector3>> treePositions = new Dictionary<int, List<Vector3>>();
+
+	public Dictionary<string, Transform> items = new Dictionary<string, Transform>();
+
+	void SetupItems()
+	{
+		items["rifle"] = rifle;
+	}
 
 	void SetupTreePositions()
 	{
@@ -205,14 +222,14 @@ public class TileFactory : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+		SetupItems();
 		SetupTreePositions();
 		map = new Map(mapHeight, mapWidth, this);
 		map.Build();
 
-		// first pass. hexes, trees, mountains.s
+		// first pass. hexes, trees, mountains.
 		foreach(var hex in map.Hexes) {
-			var v2pos = map.GameToWorld(hex.X, hex.Z);
-			var hexPos = new Vector3(v2pos.x, 0, v2pos.y);
+			var hexPos = map.GameToWorld3(hex.X, hex.Z);
 			Transform t = (Transform)Instantiate(tile, hexPos, Quaternion.identity);
 			t.Rotate(90, 0, 0);
 			t.GetComponent<Renderer>().material = hex.Terrain.Material;
@@ -232,11 +249,23 @@ public class TileFactory : MonoBehaviour {
 		// water
 		List<Hex> hexesToAddWaterTo = new List<Hex>();
 		foreach(var hex in map.Hexes) {
-			var v2pos = map.GameToWorld(hex.X, hex.Z);
-			var hexPos = new Vector3(v2pos.x, 0, v2pos.y);
+			var hexPos = map.GameToWorld3(hex.X, hex.Z);
 			if (hex.HasWater) {
 				SetupWater (hex, hexPos, hexesToAddWaterTo);
 			}
+		}
+
+		// items
+		foreach (var kvp in items) {
+			var gamePos = new Vector2();
+			gamePos.x = Random.Range(1, 2);
+			gamePos.y = Random.Range(1, 2);
+			var worldPos = map.GameToWorld3(gamePos.x, gamePos.y);
+			worldPos.y = 0.5f;
+			var hex = map.GetHex((int)gamePos.x, (int)gamePos.y);
+			Debug.LogFormat("putting {0} at {1},{2}", kvp.Key, gamePos.x, gamePos.y);
+			hex.Item = kvp.Key;
+			hex.ItemTransform = (Transform)Instantiate(kvp.Value, worldPos, Quaternion.identity);
 		}
 	}
 
