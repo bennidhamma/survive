@@ -11,65 +11,74 @@ public class Card
 	// A number used to determine probablity of card selection. Higher is better.
 	public int Points { get; set; }
 	public Texture2D Icon { get; set; }
+	public AudioClip Sound {get; set; }
 }
 
 public class CardActions
 {
 	public List<Card> Cards = new List<Card>();
-
+	
 	public CardActions()
 	{
 		//AssetDatabase.LoadAssetAtPath("")
 		Cards.Add(new Card() {
 			Title = "Move 3",
+			Sound = Resources.Load<AudioClip>("click-1"),
 			Action = p => MoveFoward(p, 3),
 			Points = 1,
 			Icon = Resources.Load<Texture2D>("mov3")
 		});
 		Cards.Add(new Card() {
 			Title = "Move 2",
+			Sound = Resources.Load<AudioClip>("click-1"),
 			Action = p => MoveFoward(p, 2),
 			Points = 2,
 			Icon = Resources.Load<Texture2D>("mov2")
 		});
 		Cards.Add(new Card() {
 			Title = "Move 1",
+			Sound = Resources.Load<AudioClip>("click-3"),
 			Action = p => MoveFoward(p, 1),
 			Points = 3,
 			Icon = Resources.Load<Texture2D>("mov1")
 		});
 		Cards.Add(new Card() {
 			Title = "Back",
+			Sound = Resources.Load<AudioClip>("click-3"),
 			Action = Back,
 			Points = 2,
 			Icon = Resources.Load<Texture2D>("back")
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CW",
+			Sound = Resources.Load<AudioClip>("click-2"),
 			Action = RotCW,
 			Points = 2,
 			Icon = Resources.Load<Texture2D>("rotcw")
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CW2",
+			Sound = Resources.Load<AudioClip>("click-2"),
 			Action = RotCW2,
 			Points = 1,
 			Icon = Resources.Load<Texture2D>("rotcw2")
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CCW",
+			Sound = Resources.Load<AudioClip>("click-2"),
 			Action = RotCCW,
 			Points = 2,
 			Icon = Resources.Load<Texture2D>("rotccw")
 		});
 		Cards.Add(new Card() {
 			Title = "Rot CCW2",
+			Sound = Resources.Load<AudioClip>("click-2"),
 			Action = RotCCW2,
 			Points = 1,
 			Icon = Resources.Load<Texture2D>("rotccw2")
 		});
 	}
-
+	
 	void MoveFoward (Player player, int movementPoints)
 	{
 		var map = player.Map;
@@ -87,7 +96,7 @@ public class CardActions
 			player.targetPosition += player.transform.forward;
 		}
 	}
-
+	
 	void Back(Player player)
 	{
 		player.targetPosition -= player.transform.forward;
@@ -98,7 +107,7 @@ public class CardActions
 		}
 		HandleHex (player, hex);
 	}
-
+	
 	void HandleHex(Player player, Hex hex)
 	{
 		player.currentHex = hex;
@@ -119,22 +128,22 @@ public class CardActions
 			player.lifeLevel = 0;
 		}
 	}
-
+	
 	void RotCW (Player player)
 	{
 		player.angle += 60;
 	}
-
+	
 	void RotCW2 (Player player)
 	{
 		player.angle += 120;
 	}
-
+	
 	void RotCCW (Player player)
 	{
 		player.angle -= 60;
 	}
-
+	
 	void RotCCW2 (Player player)
 	{
 		player.angle -= 120;
@@ -171,9 +180,10 @@ public class Player : MonoBehaviour {
 	public Texture2D waterIcon;
 	public Texture2D foodIcon;
 	public HashSet<string> items = new HashSet<string>();
-
+	public AudioSource guiAudio;
+	
 	CardActions cardDefs;
-
+	
 	void Awake() {
 		cardDefs = new CardActions();
 		campIcon = Resources.Load<Texture2D>("camp");
@@ -186,7 +196,7 @@ public class Player : MonoBehaviour {
 		badStyle.normal.textColor = Color.red;
 		badStyle.fontSize = 50;
 	}
-
+	
 	void ShuffleCards() {
 		var r = new UnityEngine.Random();
 		var totalPoints = cardDefs.Cards.Sum(c => c.Points);
@@ -201,7 +211,7 @@ public class Player : MonoBehaviour {
 			}
 		}
 	}
-
+	
 	void GameOver()
 	{
 		waterLevel = 0;
@@ -212,7 +222,7 @@ public class Player : MonoBehaviour {
 		Debug.Log("GAME OVER");
 		this.transform.rotation.Set(90, 0, 0, 0);
 	}
-
+	
 	void NewDay()
 	{
 		if (currentHex != null && numCardsPlayedToday == 0) {
@@ -243,12 +253,12 @@ public class Player : MonoBehaviour {
 		}
 		foundWater = false;
 		foundFood = false;
-
+		
 		ShuffleCards();
 		numDays++;
 		numCardsPlayedToday = 0;
 	}
-
+	
 	void NewGame()
 	{
 		Start();
@@ -261,13 +271,13 @@ public class Player : MonoBehaviour {
 		gameOver = false;
 		numDays = 0;
 	}
-
+	
 	void Start() {
 		ShuffleCards();
 		targetPosition = transform.position;
 		game = GameObject.FindGameObjectWithTag(Tags.GameController);
 	}
-
+	
 	public bool FindFood()
 	{
 		if (currentHex.HasFood) {
@@ -283,7 +293,7 @@ public class Player : MonoBehaviour {
 		}
 		return false;
 	}
-
+	
 	public bool FindWater()
 	{
 		if (currentHex.HasWater) {
@@ -291,7 +301,7 @@ public class Player : MonoBehaviour {
 		}
 		return false;
 	}
-
+	
 	public Map Map {
 		get {
 			if (map == null) {
@@ -300,7 +310,7 @@ public class Player : MonoBehaviour {
 			return map;
 		}
 	}
-
+	
 	void OnGUI() {
 		GUI.skin = skin;
 		GUI.Box(new Rect(10, 10, 80, 76), new GUIContent(waterLevel.ToString(), waterIcon), foundWater ? goodStyle : badStyle);
@@ -314,25 +324,27 @@ public class Player : MonoBehaviour {
 			}
 			return;
 		}
-
+		
 		for(int i = 0; i < cards.Count; i++) {
 			if (GUI.Button(new Rect(i * 220 + 10, Screen.height - 210, 200, 200), cards[i].Icon)) {
 				Debug.Log(cards[i].Title);
+				Debug.Log(cards[i].Sound);
+				guiAudio.PlayOneShot(cards[i].Sound);
 				cards[i].Action(this);
 				cards.RemoveAt(i);
 				numCardsPlayedToday++;
 			}
 		}
-
+		
 		if (GUI.Button (new Rect(10, Screen.height - 350, 300, 114), campIcon)) {
 			cards.Clear();
 		}
-
+		
 		if (cards.Count == 0) {
 			NewDay();
 		}
 	}
-
+	
 	void Update() {
 		transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 2);
 		var targetRotation = Quaternion.AngleAxis(angle, Vector3.up);
