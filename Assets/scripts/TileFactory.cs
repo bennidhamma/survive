@@ -35,9 +35,9 @@ public class TerrainLibrary {
 }
 
 public class Map {
-	public static float HutProbability = 0.01f;
-	public static float WaterProbability = 0.06f;
-	public static float FoodProbability = 0.1f;
+	public static float HutProbability = 0.003f;
+	public static float WaterProbability = 0.02f;
+	public static float FoodProbability = 0.05f;
 
 	public int Width { get; set; }
 	public int Height { get; set; }
@@ -281,10 +281,8 @@ public class TileFactory : MonoBehaviour {
 		// items
 		foreach (var item in items) {
 			var gamePos = new Vector2();
-			//gamePos.x = Random.Range(2, mapWidth - 2);
-			//gamePos.y = Random.Range(2, mapHeight - 2);
-			gamePos.x = Random.Range(1, 3);
-			gamePos.y = Random.Range(1, 3);
+			gamePos.x = Random.Range(2, mapWidth - 2);
+			gamePos.y = Random.Range(2, mapHeight - 2);
 			var worldPos = map.GameToWorld3(gamePos.x, gamePos.y);
 			worldPos.y = 0.5f;
 			var hex = map.GetHex((int)gamePos.x, (int)gamePos.y);
