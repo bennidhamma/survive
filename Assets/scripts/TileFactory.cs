@@ -72,7 +72,7 @@ public class Map {
 
 	public void Build()
 	{
-		Random.seed = 1;
+		//Random.seed = 1;
 		var startHeightX = Random.Range(0, 1000);
 		var startHeightZ = Random.Range(0, 1000);
 		var startWoodsX = Random.Range (0, 1000);
@@ -151,6 +151,7 @@ public enum ItemKey {
 public class Item {
 	public ItemKey Key { get; set; }
 	public Transform Transform { get; set; }
+	public int Uses { get; set; }
 	public override int GetHashCode ()
 	{
 		return Key.GetHashCode ();

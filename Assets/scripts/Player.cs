@@ -190,6 +190,10 @@ public class Player : MonoBehaviour {
 		return items.Any(x => x.Key == key);
 	}
 
+	public Item GetItem(ItemKey key) {
+		return items.FirstOrDefault (x => x.Key == key);
+	}
+
 	public void Alert(string message) {
 		AlertObject.SetActive (true);
 		var text = GameObject.Find ("Alert/Panel/Text").GetComponent<Text> ();
@@ -214,7 +218,6 @@ public class Player : MonoBehaviour {
 	}
 	
 	void ShuffleCards() {
-		var r = new UnityEngine.Random();
 		var totalPoints = cardDefs.Cards.Sum(c => c.Points);
 		while(cards.Count < lifeIndex[lifeLevel]) {
 			var num = UnityEngine.Random.Range(0, totalPoints);
@@ -231,7 +234,7 @@ public class Player : MonoBehaviour {
 	void GameOver()
 	{
 		waterLevel = 0;
-		lifeLevel = 0;
+		lifeLevel = lifeIndex.Length - 1;
 		foodLevel = 0;
 		ShuffleCards();
 		gameOver = true;
@@ -312,9 +315,21 @@ public class Player : MonoBehaviour {
 	
 	public bool FindWater()
 	{
+		var waterBottle = GetItem (ItemKey.WaterBottle);
 		if (currentHex.HasWater) {
+			if (waterBottle != null) {
+				Debug.Log("put water in the water bottle");
+				waterBottle.Uses = 1;
+			}
 			return true;
 		}
+
+		if (waterBottle != null && waterBottle.Uses > 0) {
+			Debug.Log("Drank water from the water bottle");
+			waterBottle.Uses--;
+			return true;
+		}
+
 		return false;
 	}
 	
@@ -334,7 +349,7 @@ public class Player : MonoBehaviour {
 		string health = string.Format("Life: {0}   Move: {1}   Days: {2}", lifeLevel, lifeIndex[lifeLevel], numDays);
 		GUI.Label(new Rect(300, 10, 1000, 300), health.ToString());
 		if (gameOver) {
-			GUI.Label(new Rect(Screen.width / 2 - 200, Screen.height / 2 - 50, 500, 100), lifeLevel > 0 ? "YOU DIED :(" : "YOU MADE IT!");
+			GUI.Label(new Rect(Screen.width / 2 - 200, Screen.height / 2 - 50, 500, 100), lifeIndex[lifeLevel] == 0 ? "YOU DIED :(" : "YOU MADE IT!");
 			if (GUI.Button(new Rect(Screen.width / 2 - 200, Screen.height / 2 + 100, 500, 100), "Play Again")) {
 				NewGame();
 			}
