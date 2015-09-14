@@ -129,7 +129,7 @@ public class Hex {
 	public bool IsWinCondition { get; set; }
 	public Transform Tile { get; set; }
 	public List<Hex> RiverHexes { get; set; }
-	public string Item { get; set; }
+	public Item Item { get; set; }
 	public Transform ItemTransform { get; set; }
 
 	public Hex() {
@@ -140,6 +140,20 @@ public class Hex {
 		if (HasTrail) return 1;
 		if (this.RiverHexes.Contains(fromHex)) return 2;
 		return Terrain.MovementCost;
+	}
+}
+
+public enum ItemKey {
+	Rifle,
+	WaterBottle
+}
+
+public class Item {
+	public ItemKey Key { get; set; }
+	public Transform Transform { get; set; }
+	public override int GetHashCode ()
+	{
+		return Key.GetHashCode ();
 	}
 }
 
@@ -176,11 +190,19 @@ public class TileFactory : MonoBehaviour {
 
 	static Dictionary<int, List<Vector3>> treePositions = new Dictionary<int, List<Vector3>>();
 
-	public Dictionary<string, Transform> items = new Dictionary<string, Transform>();
+	public List<Item> items = new List<Item>();
 
 	void SetupItems()
 	{
-		items["rifle"] = rifle;
+		items.Add (new Item () {
+			Key = ItemKey.Rifle,
+			Transform = rifle
+		});
+
+		items.Add (new Item () {
+			Key = ItemKey.WaterBottle,
+			Transform = waterBottle
+		});
 	}
 
 	void SetupTreePositions()
@@ -256,16 +278,22 @@ public class TileFactory : MonoBehaviour {
 		}
 
 		// items
-		foreach (var kvp in items) {
+		foreach (var item in items) {
 			var gamePos = new Vector2();
-			gamePos.x = Random.Range(1, 2);
-			gamePos.y = Random.Range(1, 2);
+			//gamePos.x = Random.Range(2, mapWidth - 2);
+			//gamePos.y = Random.Range(2, mapHeight - 2);
+			gamePos.x = Random.Range(1, 3);
+			gamePos.y = Random.Range(1, 3);
 			var worldPos = map.GameToWorld3(gamePos.x, gamePos.y);
 			worldPos.y = 0.5f;
 			var hex = map.GetHex((int)gamePos.x, (int)gamePos.y);
-			Debug.LogFormat("putting {0} at {1},{2}", kvp.Key, gamePos.x, gamePos.y);
-			hex.Item = kvp.Key;
-			hex.ItemTransform = (Transform)Instantiate(kvp.Value, worldPos, Quaternion.identity);
+			if (hex.Item != null) {
+				Debug.LogFormat("Couldn't put {0} at {1},{2} because {3} was already there", item.Key, gamePos.x, gamePos.y, hex.Item.Key);
+				continue;
+			}
+			Debug.LogFormat("putting {0} at {1},{2}", item.Key, gamePos.x, gamePos.y);
+			hex.Item = item;
+			hex.ItemTransform = (Transform)Instantiate(item.Transform, worldPos, Quaternion.identity);
 		}
 	}
 

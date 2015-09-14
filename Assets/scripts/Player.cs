@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using System.Linq;
+using UnityEngine.UI;
 
 public class Card
 {
@@ -117,9 +118,9 @@ public class CardActions
 		if (player.FindFood()) {
 			player.foundFood = true;
 		}
-		if (hex.Item != null) {
-			Debug.Log("You found a " + hex.Item);
+		if (hex.Item != null) {		
 			player.items.Add(hex.Item);
+			player.Alert("You got the " + hex.Item.Key.ToString() + "!");
 			hex.Item = null;
 			UnityEngine.Object.Destroy(hex.ItemTransform.gameObject);
 		}
@@ -179,12 +180,27 @@ public class Player : MonoBehaviour {
 	public Texture2D campIcon;
 	public Texture2D waterIcon;
 	public Texture2D foodIcon;
-	public HashSet<string> items = new HashSet<string>();
+	public HashSet<Item> items = new HashSet<Item>();
 	public AudioSource guiAudio;
+	GameObject AlertObject;
 	
 	CardActions cardDefs;
 	
+	public bool HasItem (ItemKey key) {
+		return items.Any(x => x.Key == key);
+	}
+
+	public void Alert(string message) {
+		AlertObject.SetActive (true);
+		var text = GameObject.Find ("Alert/Panel/Text").GetComponent<Text> ();
+		text.text = message;
+		Debug.Log ("text type " + text.GetType ());
+		Debug.Log (message);
+	}
+
 	void Awake() {
+		AlertObject = GameObject.Find ("Alert");
+		AlertObject.SetActive (false);
 		cardDefs = new CardActions();
 		campIcon = Resources.Load<Texture2D>("camp");
 		waterIcon = Resources.Load<Texture2D>("water");
@@ -283,10 +299,10 @@ public class Player : MonoBehaviour {
 		if (currentHex.HasFood) {
 			return true;
 		}
-		else if (items.Contains("rifle")) {
-			var mask = LayerMask.GetMask("Food");
+		else if (HasItem(ItemKey.Rifle)) {
+			var mask = LayerMask.GetMask("Resource");
 			var collisions = Physics.OverlapSphere(currentHex.Tile.position, 1.5f, mask);
-			if (collisions.Any()) {
+			if (collisions.Any(x => x.tag == Tags.Food)) {
 				Debug.Log("rifle got some food");
 				return true;
 			}
